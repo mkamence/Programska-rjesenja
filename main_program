@@ -1,0 +1,341 @@
+Programska-rjesenja
+===================
+
+Programska_rjesenja_strukture_podataka
+
+#include <iostream>
+#include <ctime>
+#include <cstdlib>
+#include <string>
+
+using namespace std;
+
+struct klijent {
+    int a, b, c, d;
+    string ime;
+    string datum;
+    float tekuci;
+    float devizni;
+    int na_racun;
+};
+
+#include "polje_red.h"
+//#include "pokazivac_red.h"
+
+void generiraj(int n, klijent polje[]) {
+    for (int i = 0; i < n ; i++) {
+        polje[i].a = rand() % 101 + 100;
+        polje[i].b = rand() % 401 + 100;
+        polje[i].c = rand() % 6 + 1;
+        polje[i].na_racun = rand() % 2;
+
+        if (polje[i].c == 6) {
+            polje[i].d = 3;
+        }
+        else {
+            polje[i].d = rand() % 4 + 1;
+        }
+    }
+
+}
+
+void ispisi_sve(int n, klijent polje[]) {
+    for (int i = 0; i < n; i++) {
+        cout << "--------------------------------------------------" << endl;
+        cout << "Klijent " << i + 1 << ": " << endl;
+        cout << "--------------------------------------------------" << endl;
+        cout << "Jedinica vremena: " << polje[i].a << endl;
+        cout << "Vremenska jedinica transankcije: " << polje[i].b << endl;
+        cout << "Prioritet klijenta: ";
+        if (polje[i].c == 1) cout << "Umirovljenik <" << polje[i].c << "> " << endl;
+        else if (polje[i].c == 2) cout << "Invalid <" << polje[i].c << "> " << endl;
+        else if (polje[i].c == 3) cout << "Trudnica <" << polje[i].c << "> " << endl;
+        else if (polje[i].c == 4) cout << "VIP klijent <" << polje[i].c << "> " << endl;
+        else if (polje[i].c == 5) cout << "Ostali klijenti <" << polje[i].c << "> " << endl;
+        else if (polje[i].c == 6) cout << "Nije klijent banke <" << polje[i].c << "> " << endl;
+        
+        cout << "Transakcija klijenta: ";
+        if (polje[i].d == 1) cout << "Uplata <" << polje[i].d << "> " << endl;
+        else if (polje[i].d == 2) cout << "Isplata <" << polje[i].d << "> " << endl;
+        else if (polje[i].d == 3) cout << "Placanje racuna <" << polje[i].d << "> " << endl;
+        else if (polje[i].d == 4) cout << "Krediti <" << polje[i].d << "> " << endl;
+    }
+    cout << endl;
+}
+
+void sortiraj(Queue *red) {
+    klijent *polje = new klijent[20];
+    klijent pomocni;
+    int ii = 0;
+    while (IsEmptyQ(red) == false) {
+        pomocni = FrontQ(red);
+        polje[ii] = pomocni; ii++;
+        DeQueueQ(red);
+    }
+
+    klijent tmp;
+    int max;
+    for (int i = ii-1; i >= 1; i--) {
+        max = 0;
+        for (int j = 1; j <= i; j++) {
+            if (polje[j].c >= polje[max].c) {
+                max = j;
+            }
+        }
+        tmp = polje[max];
+        polje[max] = polje[i];
+        polje[i] = tmp;
+    }
+
+    for (int i = 0; i < ii; i++) {
+        EnQueueQ(polje[i], red);
+    }
+
+}
+
+void zadatak_b(Queue *red, int n, klijent polje[]) {
+    cout << "Unos podataka o klijentima: " << endl;
+    for (int i = 0; i < n; i++) {
+        cout << endl << "--------------------------------------------------" << endl;
+        cout << "Klijent " << i +1 << ": " << endl;
+        cout << "--------------------------------------------------" << endl;
+        cout << "Ime i prezime klijenta: ";
+        cin >> polje[i].ime;
+      
+        cout << "Stanje na tekucem racunu (HRK) ";
+        cin >> polje[i].tekuci;
+        cout << "Stanje na deviznom racunu (EUR): ";
+        cin >> polje[i].devizni;
+        cout << "Datum rodjenja (YYYY/MM/DD): ";
+        cin >> polje[i].datum;
+    }
+
+    int *dolasci = new int[n];
+    dolasci[0] = polje[0].a;
+    for (int i = 1; i < n; i++) {
+        dolasci[i] = dolasci[i-1] + polje[i].a;
+    }
+
+    int t = 1;
+    int i = 0;
+    int zapocela_obrada_trenutnog = -1;
+    bool salter_slobodan = true;
+    klijent trenutni, sljedeci;
+    int kraj_obrade = -1;
+
+    trenutni = polje[0];
+    zapocela_obrada_trenutnog = trenutni.a;
+
+    while(1) {
+        ++t;
+        if (t == dolasci[i] && i < n) {
+              cout << endl;
+            cout << "Klijent " << i+1 << " (" << polje[i].ime << ") dolazi u banku." << endl;
+            cout << "Podaci o klijentu: " << endl;
+            cout << "t = " << t << " (" << polje[i].a << ", " << polje[i].b << ", " << polje[i].c << ", " << polje[i].d << ")" << endl << endl;
+            EnQueueQ(polje[i], red);
+            ++i;
+        
+            sortiraj(red);
+        }
+        if (t == zapocela_obrada_trenutnog + trenutni.b) {
+            cout << "Salter je slobodan. (" << t << ")" << endl << endl;
+            salter_slobodan = true;
+        }
+        if (salter_slobodan && IsEmptyQ(red) == false) {
+            cout << "Sljedeci!" << endl << endl;
+            zapocela_obrada_trenutnog = t;
+            trenutni = FrontQ(red);
+            cout << "Pozivamo na salter: " << trenutni.ime << endl << endl;
+            cout << "Obrada u tijeku..." << endl;
+            salter_slobodan = false;
+            DeQueueQ(red);
+        }
+        if (i == n && salter_slobodan) {
+            break;
+        }
+    }
+
+    cout << "Gotov red klijenata, slijedi ispis klijenata sa slijedecim obiljezjem: " << endl;
+    cout << "\nNa deviznom racunu, (vrijednosti u EUR) preko 10000 HRK imaju: " << endl << endl;
+    for (int i = 0; i < n; i++) {
+        if (polje[i].devizni * 7 > 10000) {
+            cout << polje[i].ime << " (" << polje[i].devizni << " EUR)" << endl;
+        }
+    }
+
+}
+
+void zadatak_c(klijent polje[], int n) {
+    Queue red, brzi_red, pomocni_red;
+    InitQ(&red); InitQ(&brzi_red); InitQ(&pomocni_red);
+    klijent pom;
+
+    for (int i = 0; i < n; i++) {
+        EnQueueQ(polje[i], &red);
+    }
+    sortiraj(&red);
+
+    cout << "Stanje klijenata u glavnom redu (prema prioritetu): " << endl << endl;
+    PrintQ(&red);
+    
+    cout << endl << "Premjestaju se klijenti s placanjem racuna u brzi red..." << endl;
+    while(IsEmptyQ(&red) == false) {
+        pom = FrontQ(&red);
+        DeQueueQ(&red);
+        if (pom.d == 3) {
+            EnQueueQ(pom, &brzi_red);
+        }
+        else {
+            EnQueueQ(pom, &pomocni_red);
+        }
+    }
+
+    while(IsEmptyQ(&pomocni_red) == false) {
+        EnQueueQ(FrontQ(&pomocni_red), &red);
+        DeQueueQ(&pomocni_red);
+    }
+
+    cout << "\nIspis glavnog reda nakon premjestanja: " << endl << endl;
+    PrintQ(&red);
+    
+    cout << "\n\nIspis brzog reda nakon premjestanja: " << endl << endl;
+    PrintQ(&brzi_red);
+}
+
+void zadatak_d(klijent polje[], int n) {
+    Queue red, brzi_red, pomocni_red;
+    InitQ(&red); InitQ(&pomocni_red);
+    klijent pom;
+
+    for (int i = 0; i < n; i++) {
+        EnQueueQ(polje[i], &red);
+    }
+    sortiraj(&red);
+
+    cout << "Stanje reda (prema prioritetu): " << endl << endl;
+    PrintQ(&red);
+    
+    cout << "\nIzbacivanje klijenata iz reda..." << endl;
+    while(IsEmptyQ(&red) == false) {
+        pom = FrontQ(&red);
+        DeQueueQ(&red);
+        if ((pom.c == 4 && pom.d == 1 && pom.tekuci < 100 && pom.datum > "1982/01/01") || \
+            (pom.c == 1 && pom.d == 2 && pom.tekuci > 5000)) {
+            cout << "Izbacujemo: " << pom.ime << endl;
+        }
+        else {
+            EnQueueQ(pom, &pomocni_red);
+        }
+    }
+
+    while(IsEmptyQ(&pomocni_red) == false) {
+        EnQueueQ(FrontQ(&pomocni_red), &red);
+        DeQueueQ(&pomocni_red);
+    }
+
+    cout << "\nIspis reda nakon izbacivanja: " << endl << endl;
+    PrintQ(&red);
+}
+
+void rekurzija(Queue *red, Queue *novi_red, int size, int r_br) {
+    klijent pom;
+
+    if (r_br == 0) { return; }
+
+    pom = FrontQ(red);
+    if (r_br <= size * 0.3) {
+        DeQueueQ(red);
+    }
+    else {
+        EnQueueQ(pom, red);
+        DeQueueQ(red);
+    }
+
+    rekurzija(red, novi_red, size, --r_br);
+    
+    if (r_br+1 <= size * 0.3) {
+        EnQueueQ(pom, novi_red);
+    }
+
+}
+
+void zadatak_e(klijent polje[], int n) {
+    Queue red, novi_red;
+    InitQ(&red); InitQ(&novi_red);
+    klijent pom;
+
+    for (int i = 0; i < n; i++) {
+        EnQueueQ(polje[i], &red);
+    }
+    sortiraj(&red);
+
+    cout << "\nStanje reda (prema prioritetu): " << endl << endl;
+    PrintQ(&red);
+    
+    cout << "\nOtvara se novi salter. Zadnjih 30% seli se u novi red. \n\nStanje glavnog reda nakon premjestanja: " << endl << endl;
+    rekurzija(&red, &novi_red, n, n);
+
+    PrintQ(&red);
+
+    cout << "\n\nStanje novog reda: " << endl << endl;
+    PrintQ(&novi_red);
+}
+
+int main() {
+
+    srand(time(NULL));
+
+   Queue red;
+   InitQ(&red);
+   int izbor;
+   cout << "-*-*-*-*- SIMULACIJA REDA U BANCI -*-*-*-*-" << endl;
+   cout << "\nKoliko klijenata treba generirati? " << endl;
+   int n;
+   cin >> n;
+
+   klijent *polje = new klijent[n];
+   
+   do {
+       cout << endl << "-------------------------IZBORNIK-------------------------" << endl;
+       cout << "1. Generiranje podataka o klijentima u banci" << endl;
+       cout << "2. Dodavanje zapisa o klijentima banke" << endl;
+       cout << "3. Simulacija brzog reda u banci (samo za placanje racuna)" << endl;
+       cout << "4. Brisanje VIP klijenata i umirovljenika u banci iz glavnog reda" << endl;
+       cout << "5. Simulacija novog saltera u banci" << endl;
+       cout << "6. Izlaz iz programa" << endl;
+       cout << endl;
+       cin >> izbor;
+       cout << endl;
+       
+       switch (izbor) {
+                      case 1: cout << endl << "-----Generiranje podataka klijenata banke-----" << endl;
+                              generiraj(n, polje);
+                              ispisi_sve(n, polje);
+                              break;
+                      case 2: cout << endl << "-----Dodavanje zapisa o klijentima banke-----" << endl;
+                              zadatak_b(&red, n, polje);
+                              cout << endl;
+                              break;
+                      case 3: cout << endl << "-----Simulacija brzog reda u banci-----" << endl;
+                              zadatak_c(polje, n);
+                              cout << endl;
+                              break;
+                      case 4: cout << endl << "-----Brisanje VIP klijenata (koji obavljaju transakciju uplate, mladji su od 30 godina, ";
+                              cout << " te imaju manje od sto kuna na tekucem racunu)-----" << endl;
+                              cout << "-----Brisanje umirovljenika (koji obavljaju transakciju isplate, a na racunu imaju vise od pet tisuca kuna) -----" << endl;
+                              cout << endl;
+                              zadatak_d(polje, n);
+                              cout << endl;
+                              break;
+                      case 5: cout << "-----Simulacija novog saltera u banci-----" << endl;
+                              zadatak_e(polje, n);
+                              break;
+                      case 6: break;
+                      default: cout << "Pogresan unos!" << endl;
+      }
+    } while (izbor != 6);
+
+    system("pause");
+    return 0;
+}
